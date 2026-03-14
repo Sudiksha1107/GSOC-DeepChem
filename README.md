@@ -1,3 +1,5 @@
+
+```mermaid
 graph TD
     %% Define Node Styles
     classDef start_end fill:#f96,stroke:#333,stroke-width:2px;
@@ -39,3 +41,4 @@ graph TD
     class NMT_Model,Tokenizer dl_model;
     class PreProc,CrossCheck,RuleBased chemistry_logic;
     class ValidityCheck,Similarity validation;
+'''
