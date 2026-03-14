@@ -1,44 +1,63 @@
 ```mermaid
 graph TD
 
-%% Node Styles
-classDef start_end fill:#f96,stroke:#333,stroke-width:2px;
-classDef vector_db fill:#dfd,stroke:#333,stroke-width:1px;
-classDef orchestrator fill:#bbf,stroke:#333,stroke-width:2px;
-classDef tools fill:#fff4dd,stroke:#d4a017,stroke-width:1px;
-
-Start([User Query]) --> Guard[Guard Layer: Input Sanitization]
-Guard --> Extract[Extraction Layer]
+Start([Input: SMILES or IUPAC]) --> Guard[Input Guard / Sanitization]
+Guard --> PreProc[Chemical Preprocessor]
 
 subgraph Knowledge_Retrieval
-    Extract --> Embed[Embedding Model]
-    Embed --> RAG[(Vector DB: Chemical Data / Past Chats)]
+    PreProc --> Embed[Embedding Model]
+    Embed --> Vector[(Vector DB: Chemical Data / Past Queries)]
 end
 
-RAG --> Classify{Intent Classifier}
+Vector --> Classify{Intent Classifier}
 
-Classify -- Vague_or_OffTopic --> End([Refusal or Clarification])
+Classify -- OffTopic --> End([Reject or Clarify])
 
-Classify -- Quick_Query --> Tools[Search Tools Tavily / DuckDuckGo]
+Classify -- Quick_Query --> Tools[Search Tools Tavily / Web]
 
-Classify -- Deep_Chemical_Translation --> Deep[Deep Mode Orchestrator]
+Classify -- Deep_Chemical_Query --> Deep[Deep Mode Orchestrator]
 
-subgraph Deep_Iteration_Loop
-    Deep --> Translation[NMT Model Translation]
-    Translation --> Gap[Gap Analysis and Verification]
-    Gap -- Confidence_below_0.8_and_iter_less_3 --> Deep
+subgraph Neural_Translation
+    Deep --> Tokenizer[SMILES or IUPAC Tokenizer]
+    Tokenizer --> Model{{Transformer Translation Model}}
+    Model --> RawOutput[Raw Translation Output]
 end
 
-Tools --> Formatter[Output Formatter]
+RawOutput --> Validity{RDKit Validity Check}
 
-Gap -- Confidence_ok_or_iter_3 --> Formatter
+Validity -- Invalid --> Retry[Beam Search or Temperature Retry]
+Retry --> Model
 
-Formatter --> Save[(Save to Disk or Database)]
+Validity -- Valid --> Confidence[Confidence Scoring Engine]
 
-Formatter --> User([Send to User])
+subgraph Confidence_Loop
+    Confidence --> Score{Confidence >= 0.8}
+    Score -- No --> Iterate[Refinement Iteration]
+    Iterate --> Model
+end
 
-class Start,End,User start_end
-class RAG,Save vector_db
-class Deep,Classify orchestrator
-class Tools tools
+Score -- Yes --> CrossCheck[Bi Directional Translation]
+
+subgraph Verification
+    CrossCheck --> Reverse[Translate Back]
+    Reverse --> Similarity[Tanimoto or String Similarity]
+end
+
+Similarity --> Verify{Similarity >= 0.9}
+
+subgraph Deep_Research_Loop
+    Tools --> Research[Tavily Deep Search]
+    Research --> Evidence[Evidence Aggregation]
+end
+
+Verify -- Low --> Research
+Evidence --> Formatter
+
+Verify -- High --> Formatter
+
+Formatter[Output Formatter]
+
+Formatter --> Metrics[Update Benchmarks]
+Formatter --> Memory[(Save to Vector DB)]
+Formatter --> End([Final Molecule Output])
 ```
