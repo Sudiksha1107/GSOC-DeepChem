@@ -1,3 +1,6 @@
+# GSOC-DeepChem
+## Overall Architecture of the proposed idea.
+
 ```mermaid
 graph TD
 
@@ -60,4 +63,79 @@ Formatter[Output Formatter]
 Formatter --> Metrics[Update Benchmarks]
 Formatter --> Memory[(Save to Vector DB)]
 Formatter --> End([Final Molecule Output])
+```
+
+## System Architecture (High Level)
+
+```mermaid
+graph TD
+
+User[User Input] --> API[API Layer]
+
+API --> Guard[Input Guard]
+
+Guard --> Router{Request Type}
+
+Router --> Quick[Quick Query Handler]
+Router --> Deep[Deep Translation Engine]
+
+Quick --> Tools[Web Tools / Tavily]
+
+Deep --> Tokenizer[SMILES or IUPAC Tokenizer]
+Tokenizer --> Model[Transformer Model]
+
+Model --> Validation[RDKit Validation]
+
+Validation --> Confidence[Confidence Scoring]
+
+Confidence --> Verification[Cross Translation Check]
+
+Verification --> Formatter[Output Formatter]
+
+Formatter --> Memory[(Vector Database)]
+
+Formatter --> UserOut[Final Output to User]
+```
+## Inference / Agent Pipeline (Runtime reasoning loop)
+
+```mermaid
+graph TD
+
+Start[Input Molecule]
+
+Start --> Preprocess[Chemical Preprocessing]
+
+Preprocess --> Tokenizer[Tokenizer]
+
+Tokenizer --> Model[Translation Model]
+
+Model --> Output[Raw Output]
+
+Output --> Validity{RDKit Valid?}
+
+Validity -- No --> Retry[Retry Generation]
+Retry --> Model
+
+Validity -- Yes --> Confidence[Confidence Score]
+
+Confidence --> Check{Confidence >= 0.8}
+
+Check -- No --> Iterate[Refinement Loop]
+Iterate --> Model
+
+Check -- Yes --> CrossCheck[Reverse Translation]
+
+CrossCheck --> Similarity[Similarity Score]
+
+Similarity --> Verify{Similarity >= 0.9}
+
+Verify -- No --> Research[Tavily Deep Search]
+
+Research --> Evidence[Collect Evidence]
+
+Evidence --> Formatter
+
+Verify -- Yes --> Formatter
+
+Formatter --> Final[Final Molecule Output]
 ```
