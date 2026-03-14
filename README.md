@@ -139,3 +139,37 @@ Verify -- Yes --> Formatter
 
 Formatter --> Final[Final Molecule Output]
 ```
+```mermaid
+graph TD
+    A[User Input] --> B[Guard Layer]
+    B --> C[Chemical Preprocessor]
+    C --> D[Query Embedding]
+    D --> E[Vector Retrieval]
+    E --> F[Intent Classifier]
+
+    F --> G{Intent Type}
+    G -->|OffTopic| H[Clarification Node]
+    G -->|Quick Query| I[Quick Mode]
+    G -->|Deep Chemical| J[Deep Mode Orchestrator]
+
+    I --> K[Format Output]
+    H --> L[End]
+
+    J --> M[LLM Translation]
+    M --> N[RDKit Validation]
+    N --> O{Valid?}
+    O -->|No| P[Temperature Retry]
+    P --> M
+    O -->|Yes| Q[Round-trip Check]
+    Q --> R{Similarity ≥ 0.9?}
+    R -->|No| S[Web Research]
+    S --> T[Evidence Aggregation]
+    T --> M
+    R -->|Yes| U[Gap Analysis]
+    U --> V{Confidence ≥ 0.8?}
+    V -->|No| J
+    V -->|Yes| W[Structured Synthesis]
+    W --> K
+    K --> X[Save to Memory]
+    X --> Y[Final Output]
+```
