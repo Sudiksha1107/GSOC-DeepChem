@@ -1,61 +1,44 @@
 ```mermaid
 graph TD
 
-%% INPUT LAYER
-Start([Input: SMILES / IUPAC]) --> Guard[Input Guard Layer]
-Guard --> PreProc[Chemical Preprocessing]
+%% Node Styles
+classDef start_end fill:#f96,stroke:#333,stroke-width:2px;
+classDef vector_db fill:#dfd,stroke:#333,stroke-width:1px;
+classDef orchestrator fill:#bbf,stroke:#333,stroke-width:2px;
+classDef tools fill:#fff4dd,stroke:#d4a017,stroke-width:1px;
 
-%% TRANSLATION CORE
-subgraph "Neural Translation Core"
-    PreProc --> Tokenizer[SMILES/IUPAC Tokenizer]
-    Tokenizer --> Model{{Transformer Translation Model}}
-    Model --> RawOutput[Raw Translation Output]
+Start([User Query]) --> Guard[Guard Layer: Input Sanitization]
+Guard --> Extract[Extraction Layer]
+
+subgraph Knowledge_Retrieval
+    Extract --> Embed[Embedding Model]
+    Embed --> RAG[(Vector DB: Chemical Data / Past Chats)]
 end
 
-%% CHEMICAL VALIDATION
-RawOutput --> Validity{Chemical Validity Check}
+RAG --> Classify{Intent Classifier}
 
-Validity -- Invalid Structure --> Retry[Beam Search / Temperature Retry]
-Retry --> Model
+Classify -- Vague_or_OffTopic --> End([Refusal or Clarification])
 
-Validity -- Valid --> ConfidenceEngine[Confidence Scoring Engine]
+Classify -- Quick_Query --> Tools[Search Tools Tavily / DuckDuckGo]
 
-%% CONFIDENCE REASONING LOOP
-subgraph "Confidence Driven Reasoning Loop"
-    ConfidenceEngine --> Score{Confidence >= 0.8 ?}
-    Score -- No --> Refine[Refinement Iteration]
-    Refine --> Model
+Classify -- Deep_Chemical_Translation --> Deep[Deep Mode Orchestrator]
+
+subgraph Deep_Iteration_Loop
+    Deep --> Translation[NMT Model Translation]
+    Translation --> Gap[Gap Analysis and Verification]
+    Gap -- Confidence_below_0.8_and_iter_less_3 --> Deep
 end
 
-Score -- Yes --> CrossCheck[Bi-directional Translation Check]
+Tools --> Formatter[Output Formatter]
 
-%% VERIFICATION
-subgraph "Verification Layer"
-    CrossCheck --> Reverse[Translate Back to Input Format]
-    Reverse --> Similarity[Tanimoto / String Similarity]
-end
+Gap -- Confidence_ok_or_iter_3 --> Formatter
 
-Similarity --> Verify{Similarity >= 0.9 ?}
+Formatter --> Save[(Save to Disk or Database)]
 
-%% KNOWLEDGE RETRIEVAL
-Verify -- High --> Retrieval[Optional DB Retrieval]
+Formatter --> User([Send to User])
 
-subgraph "External Knowledge Layer"
-    Retrieval --> PubChemCheck[Check in PubChem]
-    Retrieval --> ChEMBLCheck[Check in ChEMBL]
-end
-
-PubChemCheck --> Formatter
-ChEMBLCheck --> Formatter
-
-%% FALLBACK ENGINE
-Verify -- Low --> RuleEngine[Fallback Rule-Based Naming Engine]
-RuleEngine --> Formatter
-
-%% OUTPUT
-Formatter[Output Formatter]
-
-Formatter --> Metrics[Update Evaluation Metrics]
-Formatter --> VectorDB[(Store in Vector DB)]
-Formatter --> End([Final Molecule Output])
+class Start,End,User start_end
+class RAG,Save vector_db
+class Deep,Classify orchestrator
+class Tools tools
 ```
